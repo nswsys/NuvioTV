@@ -6,6 +6,7 @@ import android.view.KeyEvent as AndroidKeyEvent
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -35,6 +36,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -111,6 +113,26 @@ fun GridContentCard(
             modifier = Modifier
                 .width(posterCardStyle.width)
                 .height(cardHeight)
+                // Meta Quest controller trigger input reaches sideloaded 2D apps as
+                // pointer/touch input. Keep TV D-pad behavior, but also make the
+                // entire poster respond directly to pointer taps and long presses.
+                .pointerInput(item.id, onLongPress) {
+                    detectTapGestures(
+                        onLongPress = {
+                            if (onLongPress != null) {
+                                longPressTriggered = true
+                                onLongPress()
+                            }
+                        },
+                        onTap = {
+                            if (longPressTriggered) {
+                                longPressTriggered = false
+                            } else {
+                                onClick()
+                            }
+                        }
+                    )
+                }
                 .then(
                     if (focusRequester != null) Modifier.focusRequester(focusRequester)
                     else Modifier
