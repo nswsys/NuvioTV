@@ -321,7 +321,10 @@ class AccountViewModel @Inject constructor(
             authManager.startDeviceLoginSession(
                 deviceNonce = nonce,
                 deviceName = Build.MODEL,
-                deviceType = "tv",
+                // Quest fork: use the legacy TV-link backend path because the
+                // current /link device-code page rejects codes issued by our sideloaded build.
+                // AuthManager maps this marker to start_tv_login_session.
+                deviceType = "quest",
                 redirectBaseUrl = serverConfiguration.deviceLoginWebBaseUrl.orEmpty(),
                 legacyRedirectBaseUrl = serverConfiguration.tvLoginWebBaseUrl.orEmpty(),
                 traceId = traceId,
