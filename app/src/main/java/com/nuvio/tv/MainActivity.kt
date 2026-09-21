@@ -7,6 +7,7 @@ import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.util.Log
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -1288,7 +1289,27 @@ open class MainActivity : ComponentActivity() {
     // and then immediately exiting the app).
     val longPressBackHeld = mutableStateOf(false)
 
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        Log.d(
+            "NuvioQuestInput",
+            "touch action=${event.actionMasked} source=${event.source} buttons=${event.buttonState} actionButton=${event.actionButton} deviceId=${event.deviceId} x=${event.x} y=${event.y}"
+        )
+        return super.dispatchTouchEvent(event)
+    }
+
+    override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
+        Log.d(
+            "NuvioQuestInput",
+            "generic action=${event.actionMasked} source=${event.source} buttons=${event.buttonState} actionButton=${event.actionButton} deviceId=${event.deviceId} x=${event.x} y=${event.y}"
+        )
+        return super.dispatchGenericMotionEvent(event)
+    }
+
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        Log.d(
+            "NuvioQuestInput",
+            "key action=${event.action} keyCode=${event.keyCode} scanCode=${event.scanCode} source=${event.source} deviceId=${event.deviceId} repeat=${event.repeatCount}"
+        )
         if (event.keyCode == KeyEvent.KEYCODE_BACK) {
             if (longPressBackHeld.value) {
                 if (event.action == KeyEvent.ACTION_UP) longPressBackHeld.value = false
