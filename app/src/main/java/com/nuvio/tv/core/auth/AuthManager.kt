@@ -558,6 +558,31 @@ class AuthManager @Inject constructor(
     ): Result<DeviceLoginStartResult> {
         val startedAtMs = SystemClock.elapsedRealtime()
         val trace = qrTrace(traceId)
+
+        // Meta Quest compatibility: the web /link device-code flow currently rejects
+        // device codes from the sideloaded Quest build. Reuse Nuvio's established TV
+        // login RPC/web flow while keeping the same AccountViewModel result contract.
+        if (deviceType.equals("quest", ignoreCase = true)) {
+            Log.d(TAG, "$trace Quest login compatibility flow -> legacy TV login")
+            return startTvLoginSession(
+                deviceNonce = deviceNonce,
+                deviceName = deviceName,
+                redirectBaseUrl = legacyRedirectBaseUrl,
+                traceId = traceId,
+                diagnostics = diagnostics
+            ).map { legacy ->
+                DeviceLoginStartResult(
+                    deviceCode = legacy.code,
+                    userCode = legacy.code,
+                    verificationUri = legacyRedirectBaseUrl,
+                    verificationUriComplete = legacy.webUrl,
+                    expiresAt = legacy.expiresAt,
+                    pollIntervalSeconds = legacy.pollIntervalSeconds,
+                    legacy = true
+                )
+            }
+        }
+
         return try {
             val params = buildJsonObject {
                 put("p_device_nonce", deviceNonce)
