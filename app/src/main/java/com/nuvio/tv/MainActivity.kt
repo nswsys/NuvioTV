@@ -1302,6 +1302,36 @@ open class MainActivity : ComponentActivity() {
             "NuvioQuestInput",
             "generic action=${event.actionMasked} source=${event.source} buttons=${event.buttonState} actionButton=${event.actionButton} deviceId=${event.deviceId} x=${event.x} y=${event.y}"
         )
+
+        // Meta Quest 2D-window controller input is exposed as SOURCE_TOUCHSCREEN
+        // hover events. On trigger press Horizon OS sends ACTION_HOVER_EXIT with
+        // BUTTON_PRIMARY set instead of a normal Android touch/click event.
+        // Translate that combination into a synthetic tap at the ray coordinates
+        // so Compose/TV buttons receive the same click they would from touch.
+        if (
+            event.actionMasked == MotionEvent.ACTION_HOVER_EXIT &&
+            (event.buttonState and MotionEvent.BUTTON_PRIMARY) != 0
+        ) {
+            Log.d(
+                "NuvioQuestInput",
+                "Quest trigger -> synthetic tap x=${event.x} y=${event.y}"
+            )
+            val down = MotionEvent.obtain(event).apply {
+                action = MotionEvent.ACTION_DOWN
+            }
+            val up = MotionEvent.obtain(event).apply {
+                action = MotionEvent.ACTION_UP
+            }
+            try {
+                super.dispatchTouchEvent(down)
+                super.dispatchTouchEvent(up)
+            } finally {
+                down.recycle()
+                up.recycle()
+            }
+            return true
+        }
+
         return super.dispatchGenericMotionEvent(event)
     }
 
