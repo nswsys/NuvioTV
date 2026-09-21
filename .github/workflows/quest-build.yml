@@ -16,6 +16,8 @@ jobs:
     env:
       CI_USE_DEBUG_SIGNING: "true"
       SENTRY_DISABLE_AUTO_UPLOAD: "true"
+      LOCAL_PROPERTIES_BASE64: ${{ secrets.LOCAL_PROPERTIES_BASE64 }}
+      LOCAL_DEV_PROPERTIES_BASE64: ${{ secrets.LOCAL_DEV_PROPERTIES_BASE64 }}
 
     steps:
       - name: Checkout
@@ -27,6 +29,25 @@ jobs:
           distribution: temurin
           java-version: "17"
           cache: gradle
+
+      - name: Prepare Nuvio backend configuration
+        shell: bash
+        run: |
+          if [ -n "$LOCAL_PROPERTIES_BASE64" ]; then
+            printf '%s' "$LOCAL_PROPERTIES_BASE64" | base64 --decode > local.properties
+          else
+            touch local.properties
+          fi
+
+          if [ -n "$LOCAL_DEV_PROPERTIES_BASE64" ]; then
+            printf '%s' "$LOCAL_DEV_PROPERTIES_BASE64" | base64 --decode > local.dev.properties
+          else
+            touch local.dev.properties
+          fi
+
+          if [ ! -s local.dev.properties ] && [ ! -s local.properties ]; then
+            echo "::warning::Nuvio backend configuration is missing. QR/account login will not work in this APK."
+          fi
 
       - name: Make Gradle executable
         run: chmod +x gradlew
@@ -43,11 +64,11 @@ jobs:
             APK="$(find app/build/outputs/apk/full/debug -type f -name '*.apk' | head -n 1)"
           fi
           test -n "$APK"
-          cp "$APK" quest-apk/NuvioQuest-v0.1-debug.apk
+          cp "$APK" quest-apk/NuvioQuest-v0.2-debug.apk
 
       - name: Upload Quest APK
         uses: actions/upload-artifact@v4
         with:
-          name: NuvioQuest-v0.1
-          path: quest-apk/NuvioQuest-v0.1-debug.apk
+          name: NuvioQuest-v0.2
+          path: quest-apk/NuvioQuest-v0.2-debug.apk
           if-no-files-found: error
