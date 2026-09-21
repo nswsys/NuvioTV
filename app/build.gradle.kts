@@ -191,7 +191,13 @@ android {
 
     buildTypes {
         debug {
-            signingConfig = signingConfigs.getByName("release")
+            // Quest CI builds use Android's standard debug key so contributors can
+            // build/install test APKs without the upstream Nuvio release keystore.
+            signingConfig = if (useDebugReleaseSigning) {
+                signingConfigs.getByName("debug")
+            } else {
+                signingConfigs.getByName("release")
+            }
             isDebuggable = false
             isMinifyEnabled = false
 
