@@ -4,6 +4,7 @@ import android.view.KeyEvent as AndroidKeyEvent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.foundation.layout.Box
@@ -47,6 +48,7 @@ import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
@@ -288,6 +290,27 @@ fun ContentCard(
             },
             modifier = Modifier
                 .fillMaxWidth()
+                // Meta Quest presents controller trigger presses to 2D Android apps as
+                // pointer/touch input. TV Material cards are primarily optimized for
+                // D-pad/Enter, so handle pointer taps explicitly while retaining the
+                // existing TV key/focus behavior below.
+                .pointerInput(item.id, onLongPress) {
+                    detectTapGestures(
+                        onLongPress = {
+                            if (onLongPress != null) {
+                                longPressTriggered = true
+                                onLongPress()
+                            }
+                        },
+                        onTap = {
+                            if (longPressTriggered) {
+                                longPressTriggered = false
+                            } else {
+                                onClick()
+                            }
+                        }
+                    )
+                }
                 .onFocusChanged { state ->
                     val focusedNow = state.isFocused
                     if (needsFocusState) {
