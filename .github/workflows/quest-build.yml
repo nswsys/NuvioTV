@@ -20,7 +20,7 @@ jobs:
     env:
       CI_USE_DEBUG_SIGNING: "true"
       SENTRY_DISABLE_AUTO_UPLOAD: "true"
-      LOCAL_DEV_PROPERTIES_BASE64: ${{ secrets.LOCAL_DEV_PROPERTIES_BASE64 }}
+      LOCAL_PROPERTIES_BASE64: ${{ secrets.LOCAL_DEV_PROPERTIES_BASE64 }}
 
     steps:
       - name: Checkout
@@ -36,33 +36,33 @@ jobs:
       - name: Prepare Nuvio backend configuration
         shell: bash
         run: |
-          touch local.properties
-          if [ -z "$LOCAL_DEV_PROPERTIES_BASE64" ]; then
+          if [ -z "$LOCAL_PROPERTIES_BASE64" ]; then
             echo "::error::Missing LOCAL_DEV_PROPERTIES_BASE64 repository secret"
             exit 1
           fi
-          printf '%s' "$LOCAL_DEV_PROPERTIES_BASE64" | base64 --decode > local.dev.properties
+          printf '%s' "$LOCAL_PROPERTIES_BASE64" | base64 --decode > local.properties
+          rm -f local.dev.properties
 
       - name: Make Gradle executable
         run: chmod +x gradlew
 
       - name: Build Quest test APK
-        run: ./gradlew :app:assembleFullDebug --stacktrace
+        run: ./gradlew :app:assembleFullRelease --stacktrace
 
       - name: Collect ARM64 APK
         shell: bash
         run: |
           mkdir -p quest-apk
-          APK="$(find app/build/outputs/apk/full/debug -type f -name '*arm64-v8a*.apk' | head -n 1)"
+          APK="$(find app/build/outputs/apk/full/release -type f -name '*arm64-v8a*.apk' | head -n 1)"
           if [ -z "$APK" ]; then
             APK="$(find app/build/outputs/apk/full/debug -type f -name '*.apk' | head -n 1)"
           fi
           test -n "$APK"
-          cp "$APK" quest-apk/NuvioQuest-v0.4-debug.apk
+          cp "$APK" quest-apk/NuvioQuest-v0.4.1.1-release.apk
 
       - name: Upload Quest APK
         uses: actions/upload-artifact@v4
         with:
-          name: NuvioQuest-v0.4
-          path: quest-apk/NuvioQuest-v0.4-debug.apk
+          name: NuvioQuest-v0.4.1
+          path: quest-apk/NuvioQuest-v0.4.1.1-release.apk
           if-no-files-found: error
