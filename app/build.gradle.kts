@@ -101,7 +101,7 @@ android {
     ndkVersion = "29.0.14206865"
 
     defaultConfig {
-        applicationId = "com.nuvio.tv"
+        applicationId = "com.nswsys.nuvioquest.tv"
         minSdk = 24
         targetSdk = 36
         versionCode = 1062
