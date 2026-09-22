@@ -1,9 +1,9 @@
 package com.nuvio.tv.ui.components
 
-import android.util.Log
 import android.view.KeyEvent as AndroidKeyEvent
-import android.view.MotionEvent
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.background
 import androidx.compose.ui.draw.drawBehind
@@ -49,7 +49,6 @@ import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.input.key.onPreviewKeyEvent
-import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
@@ -88,7 +87,7 @@ private const val TRAILER_PREVIEW_REQUEST_FOCUS_DEBOUNCE_MS = 140L
 private val YEAR_REGEX = Regex("""\b(19|20)\d{2}\b""")
 private val YEAR_RANGE_REGEX = Regex("""^((19|20)\d{2})\s*[-–]\s*((19|20)\d{2})?$""")
 
-@OptIn(ExperimentalTvMaterial3Api::class)
+@OptIn(ExperimentalTvMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ContentCard(
     item: MetaPreview,
@@ -291,42 +290,19 @@ fun ContentCard(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                // Quest 2D windows can deliver controller rays as raw Android
-                // MotionEvents instead of Compose tap gestures. Intercept those events
-                // directly while keeping the existing TV D-pad/Enter path intact.
-                .pointerInteropFilter { event ->
-                    Log.d(
-                        "NuvioQuestInput",
-                        "card=${item.id} action=${event.actionMasked} source=${event.source} " +
-                            "buttonState=${event.buttonState} actionButton=${event.actionButton}"
-                    )
-                    when (event.actionMasked) {
-                        MotionEvent.ACTION_UP -> {
-                            if (longPressTriggered) {
-                                longPressTriggered = false
-                            } else {
-                                onClick()
-                            }
-                            true
+                // Match Nuvio Mobile's poster interaction path. Foundation
+                // combinedClickable handles Android pointer/touch input, while
+                // TV Material Card keeps D-pad/Enter behavior through onClick.
+                .combinedClickable(
+                    onClick = {
+                        if (longPressTriggered) {
+                            longPressTriggered = false
+                        } else {
+                            onClick()
                         }
-                        MotionEvent.ACTION_BUTTON_RELEASE -> {
-                            if (event.actionButton == MotionEvent.BUTTON_PRIMARY || event.actionButton == 0) {
-                                if (longPressTriggered) {
-                                    longPressTriggered = false
-                                } else {
-                                    onClick()
-                                }
-                                true
-                            } else {
-                                false
-                            }
-                        }
-                        else -> false
-                    }
-                }
-                // Meta Quest presents controller trigger presses to 2D Android apps as
-                // pointer/touch input. TV Material cards are primarily optimized for
-                // D-pad/Enter, so handle pointer taps explicitly while retaining the
+                    },
+                    onLongClick = onLongPress
+                )
                 // existing TV key/focus behavior below.
                                 .onFocusChanged { state ->
                     val focusedNow = state.isFocused
