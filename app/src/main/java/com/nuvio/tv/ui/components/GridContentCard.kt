@@ -2,11 +2,11 @@ package com.nuvio.tv.ui.components
 
 import com.nuvio.tv.ui.theme.NuvioTheme
 
-import android.util.Log
 import android.view.KeyEvent as AndroidKeyEvent
-import android.view.MotionEvent
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,7 +37,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.onPreviewKeyEvent
-import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -61,7 +60,7 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 
-@OptIn(ExperimentalTvMaterial3Api::class)
+@OptIn(ExperimentalTvMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun GridContentCard(
     item: MetaPreview,
@@ -114,42 +113,6 @@ fun GridContentCard(
             modifier = Modifier
                 .width(posterCardStyle.width)
                 .height(cardHeight)
-                // Quest 2D windows can deliver controller rays as raw Android
-                // MotionEvents instead of Compose tap gestures. Intercept those events
-                // directly while keeping the existing TV D-pad/Enter path intact.
-                .pointerInteropFilter { event ->
-                    Log.d(
-                        "NuvioQuestInput",
-                        "card=${item.id} action=${event.actionMasked} source=${event.source} " +
-                            "buttonState=${event.buttonState} actionButton=${event.actionButton}"
-                    )
-                    when (event.actionMasked) {
-                        MotionEvent.ACTION_UP -> {
-                            if (longPressTriggered) {
-                                longPressTriggered = false
-                            } else {
-                                onClick()
-                            }
-                            true
-                        }
-                        MotionEvent.ACTION_BUTTON_RELEASE -> {
-                            if (event.actionButton == MotionEvent.BUTTON_PRIMARY || event.actionButton == 0) {
-                                if (longPressTriggered) {
-                                    longPressTriggered = false
-                                } else {
-                                    onClick()
-                                }
-                                true
-                            } else {
-                                false
-                            }
-                        }
-                        else -> false
-                    }
-                }
-                // Meta Quest controller trigger input reaches sideloaded 2D apps as
-                // pointer/touch input. Keep TV D-pad behavior, but also make the
-                // entire poster respond directly to pointer taps and long presses.
                                 .then(
                     if (focusRequester != null) Modifier.focusRequester(focusRequester)
                     else Modifier
