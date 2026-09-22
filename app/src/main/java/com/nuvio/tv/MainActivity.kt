@@ -328,6 +328,13 @@ open class MainActivity : ComponentActivity() {
     /** True until the first onResume after onCreate completes. */
     private var isFirstResumeAfterCreate = false
 
+    // Tracks a synthetic touch sequence created from the Quest controller trigger.
+    // Horizon OS begins with HOVER_EXIT + BUTTON_PRIMARY, then continues sending
+    // ACTION_MOVE events while the trigger remains held. We own that sequence until
+    // the button is released so Compose sees one coherent tap/press gesture.
+    private var questSyntheticTouchActive = false
+    private var questSyntheticDownTime = 0L
+
     @OptIn(ExperimentalTvMaterial3Api::class, ExperimentalFoundationApi::class)
     override fun attachBaseContext(newBase: Context) {
         val tag = LocaleCache.localeTag.takeIf { it != LocaleCache.UNSET }
@@ -1303,33 +1310,76 @@ open class MainActivity : ComponentActivity() {
             "generic action=${event.actionMasked} source=${event.source} buttons=${event.buttonState} actionButton=${event.actionButton} deviceId=${event.deviceId} x=${event.x} y=${event.y}"
         )
 
-        // Meta Quest 2D-window controller input is exposed as SOURCE_TOUCHSCREEN
-        // hover events. On trigger press Horizon OS sends ACTION_HOVER_EXIT with
-        // BUTTON_PRIMARY set instead of a normal Android touch/click event.
-        // Translate that combination into a synthetic tap at the ray coordinates
-        // so Compose/TV buttons receive the same click they would from touch.
+        val primaryPressed = (event.buttonState and MotionEvent.BUTTON_PRIMARY) != 0
+
+        // Quest begins a trigger press with HOVER_EXIT + BUTTON_PRIMARY.
+        // Start a real synthetic touch sequence here and keep it active until
+        // the primary button is released. Do not emit UP immediately.
         if (
+            !questSyntheticTouchActive &&
             event.actionMasked == MotionEvent.ACTION_HOVER_EXIT &&
-            (event.buttonState and MotionEvent.BUTTON_PRIMARY) != 0
+            primaryPressed
         ) {
+            questSyntheticTouchActive = true
+            questSyntheticDownTime = event.eventTime
             Log.d(
                 "NuvioQuestInput",
-                "Quest trigger -> synthetic tap x=${event.x} y=${event.y}"
+                "Quest trigger DOWN -> synthetic touch x=${event.x} y=${event.y}"
             )
-            val down = MotionEvent.obtain(event).apply {
-                action = MotionEvent.ACTION_DOWN
-            }
-            val up = MotionEvent.obtain(event).apply {
-                action = MotionEvent.ACTION_UP
-            }
+            val down = MotionEvent.obtain(
+                questSyntheticDownTime,
+                event.eventTime,
+                MotionEvent.ACTION_DOWN,
+                event.x,
+                event.y,
+                0
+            )
             try {
-                super.dispatchTouchEvent(down)
-                super.dispatchTouchEvent(up)
+                return super.dispatchTouchEvent(down)
             } finally {
                 down.recycle()
-                up.recycle()
+            }
+        }
+
+        // While held, Horizon OS keeps producing movement. Mirror it as touch MOVE
+        // so long-press/drag semantics remain possible and Compose keeps one gesture.
+        if (questSyntheticTouchActive && primaryPressed) {
+            val move = MotionEvent.obtain(
+                questSyntheticDownTime,
+                event.eventTime,
+                MotionEvent.ACTION_MOVE,
+                event.x,
+                event.y,
+                0
+            )
+            try {
+                super.dispatchTouchEvent(move)
+            } finally {
+                move.recycle()
             }
             return true
+        }
+
+        // Release the synthetic touch as soon as Horizon reports no primary button.
+        if (questSyntheticTouchActive && !primaryPressed) {
+            questSyntheticTouchActive = false
+            Log.d(
+                "NuvioQuestInput",
+                "Quest trigger UP -> synthetic touch x=${event.x} y=${event.y}"
+            )
+            val up = MotionEvent.obtain(
+                questSyntheticDownTime,
+                event.eventTime,
+                MotionEvent.ACTION_UP,
+                event.x,
+                event.y,
+                0
+            )
+            try {
+                return super.dispatchTouchEvent(up)
+            } finally {
+                up.recycle()
+            }
         }
 
         return super.dispatchGenericMotionEvent(event)
