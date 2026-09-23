@@ -301,6 +301,12 @@ private fun PlaybackNavHost(
             )
         ) { backStackEntry ->
             val detailArgs = backStackEntry.arguments
+            androidx.compose.runtime.LaunchedEffect(backStackEntry) {
+                android.util.Log.d(
+                    "NuvioQuestInput",
+                    "navigation=DETAIL itemId=${detailArgs?.getString("itemId")}"
+                )
+            }
             val savedState = backStackEntry.savedStateHandle
             val returnToHomeOnBack = detailArgs
                 ?.getString("returnToHomeOnBack")

@@ -5,8 +5,6 @@ import com.nuvio.tv.ui.theme.NuvioTheme
 import android.view.KeyEvent as AndroidKeyEvent
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -60,7 +58,7 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 
-@OptIn(ExperimentalTvMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 fun GridContentCard(
     item: MetaPreview,
@@ -113,7 +111,12 @@ fun GridContentCard(
             modifier = Modifier
                 .width(posterCardStyle.width)
                 .height(cardHeight)
-                                .then(
+                .posterPointerInput(
+                    posterId = item.id,
+                    onClick = onClick,
+                    onLongClick = onLongPress
+                )
+                .then(
                     if (focusRequester != null) Modifier.focusRequester(focusRequester)
                     else Modifier
                 )

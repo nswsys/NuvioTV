@@ -2,8 +2,6 @@ package com.nuvio.tv.ui.components
 
 import android.view.KeyEvent as AndroidKeyEvent
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.background
 import androidx.compose.ui.draw.drawBehind
@@ -87,7 +85,7 @@ private const val TRAILER_PREVIEW_REQUEST_FOCUS_DEBOUNCE_MS = 140L
 private val YEAR_REGEX = Regex("""\b(19|20)\d{2}\b""")
 private val YEAR_RANGE_REGEX = Regex("""^((19|20)\d{2})\s*[-–]\s*((19|20)\d{2})?$""")
 
-@OptIn(ExperimentalTvMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 fun ContentCard(
     item: MetaPreview,
@@ -290,21 +288,12 @@ fun ContentCard(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                // Match Nuvio Mobile's poster interaction path. Foundation
-                // combinedClickable handles Android pointer/touch input, while
-                // TV Material Card keeps D-pad/Enter behavior through onClick.
-                .combinedClickable(
-                    onClick = {
-                        if (longPressTriggered) {
-                            longPressTriggered = false
-                        } else {
-                            onClick()
-                        }
-                    },
+                .posterPointerInput(
+                    posterId = item.id,
+                    onClick = onClick,
                     onLongClick = onLongPress
                 )
-                // existing TV key/focus behavior below.
-                                .onFocusChanged { state ->
+                .onFocusChanged { state ->
                     val focusedNow = state.isFocused
                     if (needsFocusState) {
                         if (focusedNow != isFocused) {

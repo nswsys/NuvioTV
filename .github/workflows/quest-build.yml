@@ -58,11 +58,11 @@ jobs:
             APK="$(find app/build/outputs/apk/full/debug -type f -name '*.apk' | head -n 1)"
           fi
           test -n "$APK"
-          cp "$APK" quest-apk/NuvioQuest-v0.5-release.apk
+          cp "$APK" quest-apk/NuvioQuest-v0.5.1-release.apk
 
       - name: Upload Quest APK
         uses: actions/upload-artifact@v4
         with:
-          name: NuvioQuest-v0.5
-          path: quest-apk/NuvioQuest-v0.5-release.apk
+          name: NuvioQuest-v0.5.1
+          path: quest-apk/NuvioQuest-v0.5.1-release.apk
           if-no-files-found: error
